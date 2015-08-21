@@ -4,26 +4,30 @@
     <meta charset="utf-8">
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/css/reset.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.css">
+    <link rel="stylesheet" type="text/css" href="reports.css">
+    <link rel="stylesheet" type="text/css" href="funnelviz.css">
     <script src="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.js"></script>
+    <script src="funnelmodel.js"></script>
+    <script src="funnelviz.js"></script>
   </head>
   <body class="mixpanel-platform-body">
-    <div class="mixpanel-platform-section">
+    <div id="report-content"><div id="funnels3"><div class="viewer">
       <div id="eventSelect" style="float: left;"></div>
       <div id="by" class="mixpanel-platform-label" style="margin-left: 10px; display: none;">by</div>
       <div id="propSelect" style="float: left;"></div>
       <div id="dateSelect" style="float: right;"></div>
       <div style="clear: both;"></div>
-      <div id="graph"></div>
-    </div>
-    <div id="table"></div>
+      <div id="graph">
+      </div>
+    </div></div></div>
     <script>
-      var eventSelect = $('#eventSelect').MPEventSelect();
-      var propSelect  = $('#propSelect').MPPropertySelect();
-      var dateSelect  = $('#dateSelect').MPDatepicker();
-      var eventGraph  = $('#graph').MPChart({chartType: 'line'});
-      var eventTable  = $('#table').MPTable({
-        showPercentages: true,
-        firstColHeader: 'Event'
+      MP.api.funnel('$signup', 'Viewed report').done(function(results) {
+        // console.log(fake_results);
+        // console.log(JSON.stringify(fake_results));
+
+        var model = new MPFunnelModel();
+        new MPFunnelViewer({el: '#graph', model: model}).render();
+        model.setData(fake_results);
       });
 
       var runQuery = function() {
@@ -43,13 +47,108 @@
           });
         }
       };
-      eventSelect.on('change', function(e, eventName) {
-        propSelect.MPPropertySelect('setEvent', eventName);
-        $("#by").show();
-        runQuery();
-      });
-      propSelect.on('change', runQuery);
-      dateSelect.on('change', runQuery);
+    </script>
+
+    <script id="tpl_graph" type="text/template">
+        <div class="button_blocker">&nbsp;&nbsp;&nbsp;</div>
+        <div class="header">
+            <div id="date_selector" class="block"></div>
+            <div class="block">
+                <div class="finish_rate">0</div>
+                <div class="meta">Completion<br />Rate</div>
+            </div>
+            <div class="block">
+                <div class="stepper"></div>
+            </div>
+        </div>
+        <div class="body data">
+            <div class="columns_wrap">
+                <div class="notes">
+                    <div class="note no_data">
+                        <img class="icon" src="https://cdn.mxpnl.com/site_media/images/reports/funnels3/icon_warn.png" />
+                        <h1>We could not find any data</h1>
+                        <h2>Try selecting a different date range.</h2>
+                    </div>
+                    <div class="note loading">
+                        <img class="icon" src="https://cdn.mxpnl.com/site_media/images/ajax/ajax-loader-big.gif" />
+                        <h1>Building your funnel</h1>
+                        <h2>Calculating your conversion rates...</h2>
+                    </div>
+                    <div class="note error">
+                        <img class="icon" src="https://cdn.mxpnl.com/site_media/images/reports/funnels3/icon_warn.png" />
+                        <h1>Server Error</h1>
+                        <h2></h2>
+                    </div>
+                </div>
+                <div class="y_axis"></div>
+                <div class="inner_wrap">
+                    <div class="columns"></div>
+                    <div class="trends"></div>
+                </div>
+            </div>
+            <div class="overview_button active">Overview</div>
+        </div>
+    </script>
+    <script id="tpl_graph_line" type="text/template">
+        <div class="line" style="height: <%= d.height %>px"><div class="amt"><%= d.amt %></div></div>
+    </script>
+    <script id="tpl_graph_columns" type="text/template">
+        <% _.each(d.overall_steps(), function(step, i) { %>
+            <div style="<%= d.get_height(step) %>" class="<%= (i == 0) ? 'first ' : '' %>column">
+                <div class="count"><%= d.commaize(step.count) %></div>
+                <div class="column_button" data-index="<%= step.index %>"
+                     data-tooltip="<%= _.escape(d.rename_mp_event(step.event)) %>">
+                    <%= _.escape(d.truncate(d.rename_mp_event(step.event), 15)) %>
+                </div>
+            </div>
+        <% }); %>
+    </script>
+    <script id="tpl_graph_trends" type="text/template">
+        <% _.each(d.overall_steps(), function(step, i) { %>
+            <% if (i == 0) { return; } %>
+            <div class="trend" data-index="<%= step.index %>">
+                <div class="percent"><%= d.step_conv_ratio(step) %></div>
+            </div>
+        <% }); %>
+    </script>
+
+    <script>
+fake_results =
+{
+  "meta": {
+    "dates": [
+      "2015-07-23"
+    ]
+  },
+  "data": {
+    "2015-07-23": {
+      "steps": [
+        {
+          "count": 8944,
+          "step_conv_ratio": 1,
+          "goal": "$signup",
+          "overall_conv_ratio": 1,
+          "avg_time": null,
+          "event": "$signup"
+        },
+        {
+          "count": 7825,
+          "step_conv_ratio": 0.8748881932021467,
+          "goal": "Viewed report",
+          "overall_conv_ratio": 0.8748881932021467,
+          "avg_time": 27,
+          "event": "Viewed report"
+        }
+      ],
+      "analysis": {
+        "completion": 7825,
+        "starting_amount": 8944,
+        "steps": 2,
+        "worst": 1
+      }
+    }
+  }
+};
     </script>
   </body>
 </html>
