@@ -89,6 +89,64 @@
           event5 = $('#event5').MPEventSelect(),
           dateSelect  = $('#dateSelect').MPDatepicker();
 
+
+
+
+var cqScript = 'var HOUR = 60 * 60 * 1000; \
+        var DAY   = 24 * HOUR; \
+        var WEEK  = 7 * DAY; \
+        var MONTH = 30 * DAY; \
+        \
+        var result = {}; \
+        \
+        \
+        var processEvent = function(event, user) { \
+            if (user) { \
+                user.state = user.state || { steps: [], next: \'\' }; \
+                var current_step = user.state.steps.length; \
+                if (event.name == params.steps[current_step]) { \
+                       user.state.steps[current_step] = event.time; \
+                    user.state.next = \'\'; \
+                } else { \
+                    if (user.state.next === \'\') { \
+                        user.state.next = event.name; \
+                    } \
+                } \
+            } \
+        }; \
+        \
+        var processUser = function(user) { \
+            if (user.state && user.state.steps.length) { \
+                var day = _to_date_string(user.state.steps[0]); \
+                result[day] = result[day] || _initialize_result_for_day(); \
+                for (var i = 0; i < user.state.steps.length; i++) { \
+                    result[day][i].count++; \
+                    if (i > 0) { \
+                        var time_delta = user.state.steps[i] - user.state.steps[i - 1]; \
+                        result[day][i].sum_of_time_deltas += time_delta; \
+                    } \
+                } \
+                result[day][user.state.steps.length - 1].next[user.state.next] = result[day][user.state.steps.length - 1].next[user.state.next] || 0; \
+                result[day][user.state.steps.length - 1].next[user.state.next]++; \
+            } \
+        }; \
+        \
+        var _to_date_string = function(ts) { \
+            var date = new Date(ts); \
+            return date.toISOString().split(\'T\')[0]; \
+        }; \
+        \
+        var _initialize_result_for_day = function() { \
+            var day_result = {}; \
+            for (var i = 0; i < params.steps.length; i++) { \
+                day_result[i] = { count: 0, sum_of_time_deltas: 0, \'next\' : {} }; \
+            } \
+            return day_result; \
+        }; \
+        ';
+
+
+
       var runQuery = function() {
           var events = [],
               eventNames = [event1, event2, event3, event4, event5],
@@ -106,22 +164,50 @@
 
           parameters = {
             from: fromDate,
-            to: toDate,
-            script: 'ourScript',
-            params: '{"steps":[' + events + ']}'
+            // to: toDate,
+            to: fromDate,
+            window_size: '1',
+            params: JSON.stringify({steps: events})
           }
 
           if (events.length > 1) {
             console.log(parameters);
+            MP.api.custom_query(cqScript, parameters).done(function(results) {
+                console.log(results);
+window.results = results;
 
-            MP.api.funnel('$signup', 'Viewed report').done(function(results) {
-              // console.log(fake_results);
-              // console.log(JSON.stringify(fake_results));
+              var funnel_results = {
+                data: {}
+              };
+              var date = _.keys(results.results)[0];
+              funnel_results.data[date] = {
+                steps: _.map(_.keys(results.results[date]).sort(), function(idx) {
+                  var obj = _.extend(results.results[date][idx], {
+                    avg_time: null,
+                    event: events[idx],
+                    step_conv_ratio: 1,
+                    overall_conv_ratio: 1
+                  });
+                  return obj;
+                })
+              };
+window.funnel_results = funnel_results;
 
               var model = new MPFunnelModel();
               new MPFunnelViewer({el: '#graph', model: model}).render();
-              model.setData(fake_results);
-            });
+              model.setData(funnel_results);
+
+                //do some stuff here
+            })
+
+            // MP.api.funnel('$signup', 'Viewed report').done(function(results) {
+            //   // console.log(fake_results);
+            //   // console.log(JSON.stringify(fake_results));
+
+            //   var model = new MPFunnelModel();
+            //   new MPFunnelViewer({el: '#graph', model: model}).render();
+            //   model.setData(fake_results);
+            // });
           }
 
       };
