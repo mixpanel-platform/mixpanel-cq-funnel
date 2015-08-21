@@ -32,6 +32,11 @@
             dateRange = dateSelect.MPDatepicker('value');
 
         if (eventName) {
+          MP.api.funnel(eventName, 'Viewed report').done(function(results) {
+            console.log(results);
+            console.log(JSON.stringify(results));
+          });
+
           MP.api.segment(eventName, propName, dateRange).done(function(results) {
             eventGraph.MPChart('setData', results);
             eventTable.MPTable('setData', results);
