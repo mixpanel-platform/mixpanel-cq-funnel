@@ -27,7 +27,8 @@ var FunnelGraph = Backbone.View.extend({
     // template helpers
     helpers: {
         step_conv_ratio: function(step) {
-            return mp.utility.round(step.step_conv_ratio * 100, 2);
+            // return mp.utility.round(step.step_conv_ratio * 100, 2);
+            return '---';
         },
         overall_steps: function() {
             return this._model.get_overall_steps();
