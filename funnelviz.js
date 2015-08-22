@@ -242,6 +242,24 @@ var FunnelGraph = Backbone.View.extend({
         // update the date picker
         this.update_date_picker();
         this.update_start_step();
+
+        var table_data = _.map(
+            this.model.overall, function(step) {
+                return '--- ' + step.event + ' ---<br>' + _.map(
+                    _.sortBy(_.keys(step.next), function(k) {
+                        return -step.next[k]
+                    }),
+                    function(k) {
+                        return step.next[k] + ': ' + k + '<br>';
+                    });
+            })
+            .join('<br>');
+        this.$el.append(
+            '<div class="dropoff">' +
+                'WHAT DID PEOPLE DO AFTER DROPPING OFF?<br><br>' +
+                table_data +
+            '</div>'
+        );
     },
 
     show_message: function(type, extra) {
